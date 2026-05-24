@@ -102,11 +102,21 @@ def main() -> None:
         model_runs=model_runs if len(model_runs) > 1 else None,
     )
 
-    report_out = out_dir / "evaluation_report_v3.txt"
+    report_out = out_dir / "evaluation_report.txt"
     report_out.write_text(report, encoding="utf-8")
     print(f"\nReport saved: {report_out}")
     print("\n" + report)
 
 
 if __name__ == "__main__":
+    sys.argv = [
+        "main.py",
+        "logs.jsonl",   # ← your log file here
+        "--names", "OpenClaw",
+        "--out", "./results",
+    ]
     main()
+    # logs = _run("logs.jsonl")
+    # for r in logs:
+    #     print(r)
+    #     print("-" * 40)
