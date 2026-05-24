@@ -210,7 +210,7 @@ _WEAKNESS_THRESHOLDS = {
     "High retry instability (≥3)":   lambda r: r.retry_count >= 3,
     "Schema hallucinations (SQL)":   lambda r: r.layer1.table_score < 0
                                                 or r.layer1.column_score < 0,
-    "Semantic SQL failures":         lambda r: 0.0 <= r.layer1.semantic_score < 0.5,
+    "Semantic SQL failures":         lambda r: r.tool_type == "dynamic" and 0.0 <= r.layer1.semantic_score < 0.5,
     "Task completion failures":      lambda r: r.task_completion == 0.0,
 }
 
