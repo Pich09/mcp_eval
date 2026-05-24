@@ -73,7 +73,7 @@ def evaluate_episode(episode: Episode) -> EpisodeResult:
 
         notes.append(f"  Tool selected: '{first.tool}'  (dynamic path)")
 
-        # Tool correctness (was execute_sql selected and routed correctly?)
+        # Tool correctness — pass system_hint so execute_sql routes correctly
         if bench:
             tc, tc_label = eval_tool_correctness(first, bench, notes)
         else:
@@ -83,7 +83,17 @@ def evaluate_episode(episode: Episode) -> EpisodeResult:
         result.layer1.tool_correctness    = tc
         result.layer1.tool_classification = tc_label
 
-        # SQL sub-dimensions (evaluate only if dynamic tool was at least attempted)
+        # SQL sub-dimensions
+        notes.append("  — Parameter correctness —")
+        if bench:
+            pc, pb = eval_param_correctness(first, bench, notes)
+        else:
+            notes.append("  ⚠ No benchmark matched. Param correctness set to 0.5 (heuristic).")
+            pc, pb = 0.5, {}
+        result.layer1.param_correctness = pc
+        result.layer1.param_breakdown   = pb
+
+        # SQL sub-dimensions
         notes.append("  — SQL quality sub-dimensions —")
         result.layer1.exec_success     = eval_exec_success(first, notes)
         result.layer1.table_score      = eval_table_existence(first.sql, bench or {}, notes)
@@ -91,13 +101,28 @@ def evaluate_episode(episode: Episode) -> EpisodeResult:
         result.layer1.schema_rel_score = eval_schema_relationship(first.sql, bench or {}, notes)
         result.layer1.semantic_score   = eval_semantic_sql(first.sql, bench or {}, notes)
 
+        # Sequence quality (truncated to expected_sequence length)
+        notes.append("  — Sequence quality —")
+        if bench:
+            result.layer1.sequence_score = eval_sequence(episode, bench, notes)
+        else:
+            result.layer1.sequence_score = 1.0
+            notes.append("  ℹ No benchmark — sequence check N/A. Score: 1.0")
+
+        # Context retention
+        notes.append("  — Context retention —")
+        result.layer1.context_score = eval_context(episode, notes)
+
         l1_component_scores = [
             result.layer1.tool_correctness,
+            result.layer1.param_correctness,
             result.layer1.exec_success,
             result.layer1.table_score,
             result.layer1.column_score,
             result.layer1.schema_rel_score,
             result.layer1.semantic_score,
+            result.layer1.sequence_score,
+            result.layer1.context_score,
         ]
 
         # Semantic score of the FINAL dynamic attempt (for Layer 3)

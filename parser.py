@@ -53,6 +53,21 @@ def _get_text(content: Any) -> str:
     return ""
 
 
+# ── Startup message patterns (SOUL.md preamble — not real user queries) ──────
+_STARTUP_SIGNALS = (
+    "read soul.md",
+    "read revenue_prompt_gallery",
+    "chmod +x",
+    "mkdir -p",
+    "api_catalog.json",
+    "mcporter.json",
+)
+
+def _is_startup_message(text: str) -> bool:
+    lower = text.lower()
+    return any(p in lower for p in _STARTUP_SIGNALS)
+
+
 def _extract_query(raw_text: str) -> str:
     """Strip OpenClaw metadata wrapper; return the real user question."""
     # Remove JSON code fences (conversation metadata)
@@ -177,7 +192,9 @@ def parse_logs(path: str | Path) -> list[Episode]:
 
             for block in content:
                 if block.get("type") == "text":
-                    current_query = _extract_query(block["text"])
+                    q = _extract_query(block["text"])
+                    if not _is_startup_message(q):
+                        current_query = q
                     break
 
         # ── Assistant message → collect tool calls ────────────────────────────
